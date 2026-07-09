@@ -9,8 +9,11 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "static/uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 # Load trained model
 model = load_model("crop_disease_model.keras")
+
 class_names = [
     "Apple___Apple_scab",
     "Apple___Black_rot",
@@ -51,6 +54,7 @@ class_names = [
     "Tomato___Tomato_mosaic_virus",
     "Tomato___healthy"
 ]
+
 treatments = {
     "Apple___Apple_scab": "Spray Mancozeb or Captan fungicide. Remove infected leaves.",
     "Apple___Black_rot": "Remove infected fruits and use a recommended fungicide.",
@@ -61,6 +65,7 @@ treatments = {
     "Tomato___Late_blight": "Avoid overhead watering and spray fungicide.",
     "Tomato___healthy": "Plant is healthy. No treatment required."
 }
+
 disease_info = {
     "Apple___Apple_scab": {
         "description": "Apple Scab is a fungal disease that causes dark, scabby spots on leaves and fruits. It reduces fruit quality and yield.",
@@ -92,10 +97,11 @@ disease_info = {
         "prevention": "Maintain proper irrigation and balanced nutrients."
     }
 }
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 
 @app.route("/predict", methods=["POST"])
@@ -106,50 +112,53 @@ def predict():
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], image.filename)
         image.save(filepath)
 
-        # Load and preprocess image
+        # Preprocess image
         img = Image.open(filepath).convert("RGB")
         img = img.resize((224, 224))
         img_array = np.array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Predict
+        # Prediction
         prediction = model.predict(img_array)
         predicted_index = np.argmax(prediction)
         confidence = np.max(prediction) * 100
 
         disease = class_names[predicted_index]
+
         recommendation = treatments.get(
             disease,
-            "Consult a local agricultural expert and use a recommended fungicide or pesticide according to the diagnosed disease."
+            "No recommendation available."
         )
 
-    description = disease_info.get(
-        disease,
-        {}
-    ).get(
-        "description",
-        "The model detected this disease. Please inspect the plant carefully."
-    )
+        description = disease_info.get(
+            disease,
+            {}
+        ).get(
+            "description",
+            "No description available."
+        )
 
-    prevention = disease_info.get(
-        disease,
-        {}
-    ).get(
-        "prevention",
-        "Maintain field hygiene, avoid excess watering, remove infected leaves, and follow recommended crop management practices."
-    )
-return render_template(
-    "index.html",
-    disease=disease,
-    confidence=f"{confidence:.2f}",
-    image=image.filename,
-    recommendation=recommendation,
-     description=description,
-    prevention=prevention
-)
-    
+        prevention = disease_info.get(
+            disease,
+            {}
+        ).get(
+            "prevention",
+            "No prevention tips available."
+        )
 
-return "No image selected."
+        return render_template(
+            "index.html",
+            disease=disease,
+            confidence=f"{confidence:.2f}",
+            image=image.filename,
+            recommendation=recommendation,
+            description=description,
+            prevention=prevention
+        )
+
+    return "No image selected."
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
