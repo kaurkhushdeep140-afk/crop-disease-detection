@@ -118,18 +118,27 @@ def predict():
         confidence = np.max(prediction) * 100
 
         disease = class_names[predicted_index]
-        recommendation = treatments.get(disease, "No recommendation available.")
-        description = disease_info.get(disease, {}).get(
-           "description",
-            "No description available.")
-        prevention = disease_info.get(
-            disease, 
-            {}
-            ).get(
-                "prevention",
-                "No prevention tips available."
-                )
-        return render_template(
+        recommendation = treatments.get(
+            disease,
+            "Consult a local agricultural expert and use a recommended fungicide or pesticide according to the diagnosed disease."
+        )
+
+    description = disease_info.get(
+        disease,
+        {}
+    ).get(
+        "description",
+        "The model detected this disease. Please inspect the plant carefully."
+    )
+
+    prevention = disease_info.get(
+        disease,
+        {}
+    ).get(
+        "prevention",
+        "Maintain field hygiene, avoid excess watering, remove infected leaves, and follow recommended crop management practices."
+    )
+return render_template(
     "index.html",
     disease=disease,
     confidence=f"{confidence:.2f}",
@@ -140,7 +149,7 @@ def predict():
 )
     
 
-    return "No image selected."
+return "No image selected."
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
